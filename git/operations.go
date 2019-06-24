@@ -47,6 +47,7 @@ func config(ctx context.Context, workingDir, user, email string) error {
 }
 
 func clone(ctx context.Context, workingDir, repoURL, repoBranch string) (path string, err error) {
+	initSubmodule(ctx, workingDir)
 	repoPath := workingDir
 	args := []string{"clone"}
 	if repoBranch != "" {
@@ -71,6 +72,16 @@ func mirror(ctx context.Context, workingDir, repoURL string) (path string, err e
 
 func checkout(ctx context.Context, workingDir, ref string) error {
 	args := []string{"checkout", ref, "--"}
+	return execGitCmd(ctx, args, gitCmdConfig{dir: workingDir})
+}
+
+func initSubmodule(ctx context.Context, workingDir) error {
+	args := []string{"submodule", "update", "--init", "--recursive"}
+	return execGitCmd(ctx, args, gitCmdConfig{dir: workingDir})
+}
+
+func updateSubmodule(ctx context.Context, workingDir) error {
+	args := []string{"submodule", "update", "--remote", "--merge"}
 	return execGitCmd(ctx, args, gitCmdConfig{dir: workingDir})
 }
 
@@ -126,6 +137,7 @@ func push(ctx context.Context, workingDir, upstream string, refs []string) error
 
 // fetch updates refs from the upstream.
 func fetch(ctx context.Context, workingDir, upstream string, refspec ...string) error {
+	updateSubmodule(ctx, workingDir)
 	args := append([]string{"fetch", "--tags", upstream}, refspec...)
 	// In git <=2.20 the error started with an uppercase, in 2.21 this
 	// was changed to be consistent with all other die() and error()
