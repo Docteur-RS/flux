@@ -35,6 +35,7 @@ func config(ctx context.Context, workingDir, user, email string) error {
 }
 
 func clone(ctx context.Context, workingDir, repoURL, repoBranch string) (path string, err error) {
+	initSubmodule(ctx, workingDir)
 	repoPath := workingDir
 	args := []string{"clone"}
 	if repoBranch != "" {
@@ -45,6 +46,16 @@ func clone(ctx context.Context, workingDir, repoURL, repoBranch string) (path st
 		return "", errors.Wrap(err, "git clone")
 	}
 	return repoPath, nil
+}
+
+func initSubmodule(ctx context.Context, workingDir) error {
+	args := []string{"submodule", "update", "--init", "--recursive"}
+	return execGitCmd(ctx, args, gitCmdConfig{dir: workingDir})
+}
+
+func updateSubmodule(ctx context.Context, workingDir) error {
+	args := []string{"submodule", "update", "--remote", "--merge"}
+	return execGitCmd(ctx, args, gitCmdConfig{dir: workingDir})
 }
 
 func mirror(ctx context.Context, workingDir, repoURL string) (path string, err error) {
@@ -108,6 +119,7 @@ func push(ctx context.Context, workingDir, upstream string, refs []string) error
 
 // fetch updates refs from the upstream.
 func fetch(ctx context.Context, workingDir, upstream string, refspec ...string) error {
+	updateSubmodule(ctx, workingDir)
 	args := append([]string{"fetch", "--tags", upstream}, refspec...)
 	if err := execGitCmd(ctx, workingDir, nil, args...); err != nil &&
 		!strings.Contains(err.Error(), "Couldn't find remote ref") {
